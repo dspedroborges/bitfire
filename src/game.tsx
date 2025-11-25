@@ -1,3 +1,5 @@
+import { soundEffects } from "./soundPool";
+
 type Bullet = {
     x: number;
     y: number;
@@ -47,6 +49,8 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
     const bullet_speed = 25;
     const player_speed = 10;
     const STARS_INCREASE = 15;
+    let lastShot = 0;
+    const SHOT_DELAY = 25; // ms
 
     const PLAYER_COLOR = "#4E61D3";
     const DECIMAL_COLOR = "#F4F754";
@@ -57,6 +61,15 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
     canvas.height = window.innerHeight;
 
     const player: Player = { x: 280, y: canvas.height - 10, w: 40, h: 40, color: PLAYER_COLOR, speed: player_speed };
+    const playerImages = {
+        straight: new Image(),
+        left: new Image(),
+        right: new Image()
+    }
+
+    playerImages.straight.src = "/images/ship.png"
+    playerImages.left.src = "/images/ship_left.png"
+    playerImages.right.src = "/images/ship_right.png"
 
     window.addEventListener("resize", () => {
         canvas.width = window.innerWidth;
@@ -75,6 +88,7 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
     let points = 0;
     let life = 3;
     let stars_amount = 25;
+    let playerState: "straight" | "left" | "right" = "straight";
 
     let inputs: InputBit[] = [];
     let decimals: DecimalBit[] = [];
@@ -119,10 +133,22 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
     let bullets: Bullet[] = [];
     let keys: Record<string, boolean> = {};
 
+    // fire
     document.addEventListener("keydown", e => {
         keys[e.code] = true;
         if (e.code === "Space" || e.code === "KeyJ") {
-            bullets.push({ x: player.x + player.w / 2, y: player.y, r: 6, color: BULLET_COLOR, speed: bullet_speed });
+            soundEffects.fire.play();
+            const now = performance.now();
+            if (now - lastShot < SHOT_DELAY) return;
+            lastShot = now;
+
+            bullets.push({
+                x: player.x + player.w / 2,
+                y: player.y,
+                r: 6,
+                color: BULLET_COLOR,
+                speed: bullet_speed
+            });
         }
     });
 
@@ -137,6 +163,7 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
                     input.active = !input.active;
                     hit = true;
                     input.color = COLLISION_COLOR;
+                    soundEffects.hit.play();
                     setTimeout(() => {
                         input.color = INPUT_COLOR;
                     }, 25);
@@ -161,11 +188,13 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
         points = 0;
         randomNumber = randomInt(Math.pow(2, potency) - 1);
         drawInputsAndDecimals();
+        soundEffects.gameover.play();
         onGameOver();
     }
 
     function levelUp() {
         if (points % 5 == 0) {
+            soundEffects.level.play();
             level++;
             stars_amount += STARS_INCREASE;
             setStars();
@@ -179,9 +208,11 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
     function reset(success: boolean) {
         let keepNumber = false;
         if (success) {
+            soundEffects.score.play();
             points++;
             levelUp();
         } else {
+            soundEffects.timeout.play();
             life--;
             keepNumber = true;
             if (life == 0) {
@@ -202,26 +233,21 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
     }
 
     function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-        ctx.fillStyle = player.color;
-        ctx.strokeStyle = player.color;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + w / 2, y - h);
-        ctx.lineTo(x + w, y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        const img = playerImages[playerState];
+        ctx.drawImage(img, x, y - h, w, h);
     }
 
     function update() {
         if (keys["KeyA"]) {
+            playerState = "left";
             player.x -= player.speed;
             if (player.x + player.w < 0) player.x = canvas.width;
-        }
-
-        if (keys["KeyD"]) {
+        } else if (keys["KeyD"]) {
+            playerState = "right";
             player.x += player.speed;
             if (player.x > canvas.width) player.x = -player.w;
+        } else {
+            playerState = "straight";
         }
 
         bullets.forEach(b => b.y -= b.speed);
@@ -303,6 +329,11 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
     function createTimer() {
         interval = window.setInterval(() => {
             seconds--;
+
+            if (seconds == 3) {
+                soundEffects.alarm.play();
+            }
+
             if (seconds <= 0) {
                 reset(false);
             }
