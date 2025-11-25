@@ -1,3 +1,3 @@
-export const PRIMARY_COLOR = "#FED766";
-export const SECONDARY_COLOR = "#2AB7CA";
-export const ACCENT_COLOR = "#FE4A49";
+export const PRIMARY_COLOR = "#07A0C3";
+export const SECONDARY_COLOR = "#086788";
+export const ACCENT_COLOR = "#F0C808";

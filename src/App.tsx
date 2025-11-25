@@ -3,30 +3,37 @@ import { game } from './game';
 import { BsPlayFill } from 'react-icons/bs';
 import { soundEffects } from './soundPool';
 import { PRIMARY_COLOR } from './colors';
+import { toast, Toaster } from 'sonner';
 
 function App() {
   const canvasRef = useRef(null);
   const [started, setStarted] = useState(false);
 
   const handleGameover = () => {
-    return "";
+    toast.warning("Game over!");
+  }
+
+  const handleMessage = (message: string) => {
+    toast.info(message);
   }
 
   function startGame() {
+    toast.info("The game has started");
     const canvas = canvasRef.current;
     if (!canvas) return;
-    game(canvas, handleGameover);
+    game(canvas, handleGameover, handleMessage);
     setStarted(true);
   }
 
   return (
-    <div className='bg-linear-90 from-neutral-950 to-neutral-800 h-screen w-full'>
+    <div className="bg-linear-90 from-neutral-950 to-neutral-800 h-screen w-full">
+      <Toaster />
       {/* <audio ref={fireSound} src="/sound_effects/fire.wav" /> */}
       {!started && (
         <div className="z-50 min-h-[250px] w-full lg:w-1/2 text-white rounded-xl fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center border-4 bg-neutral-950" style={{ borderColor: PRIMARY_COLOR }}>
           <div style={{ backgroundColor: PRIMARY_COLOR }} className="mb-4 py-4 w-full flex items-center justify-center gap-2">
             <img src="/images/ship.png" className="w-16 block hover:rotate-12 transition-all"/>
-            <h1 className="text-neutral-950 text-5xl font-extrabold text-center orbitron">Bitfire</h1>
+            <h1 className="text-white text-5xl font-extrabold text-center orbitron">Bitfire</h1>
           </div>
 
           <div className="p-4 inter">

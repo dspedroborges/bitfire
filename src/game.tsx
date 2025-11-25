@@ -43,7 +43,7 @@ type Player = {
     speed: number;
 };
 
-export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
+export function game(canvas: HTMLCanvasElement, onGameOver: () => void, onMessage: (message: string) => void) {
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     const maxSeconds = 11;
     const bullet_speed = 25;
@@ -197,6 +197,7 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
             level++;
             stars_amount += STARS_INCREASE;
             setStars();
+            onMessage("Level up!");
             if (potency <= 8) {
                 potency++;
             }
@@ -209,11 +210,13 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
         if (success) {
             soundEffects.score.play();
             points++;
+            onMessage("Good job!");
             levelUp();
         } else {
             soundEffects.timeout.play();
             life--;
             keepNumber = true;
+            onMessage("Time's up");
             if (life == 0) {
                 gameOver();
             }
@@ -292,13 +295,13 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
         for (const decimal of decimals) {
             ctx.fillStyle = decimal.color;
             ctx.fillRect(decimal.x, decimal.y, decimal.w, decimal.h);
-            writeSomething(decimal.value.toString(), potency < 7 ? 14 : 12, decimal.x + decimal.w / 2, decimal.y + decimal.h / 2, "center", "#333");
+            writeSomething(decimal.value.toString(), potency < 7 ? 14 : 12, decimal.x + decimal.w / 2, decimal.y + decimal.h / 2, "center", "#eee");
         }
 
         for (const input of inputs) {
             ctx.fillStyle = input.color;
             ctx.fillRect(input.x, input.y, input.w, input.h);
-            writeSomething(input.active ? "1" : "0", potency < 7 ? 24 : 18, input.x + input.w / 2, input.y + input.h / 2, "center", "#333");
+            writeSomething(input.active ? "1" : "0", potency < 7 ? 24 : 18, input.x + input.w / 2, input.y + input.h / 2, "center", "#eee");
         }
 
         bullets.forEach(b => {
