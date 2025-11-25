@@ -1,3 +1,4 @@
+import { ACCENT_COLOR, PRIMARY_COLOR, SECONDARY_COLOR } from "./colors";
 import { soundEffects } from "./soundPool";
 
 type Bullet = {
@@ -39,7 +40,6 @@ type Player = {
     y: number;
     w: number;
     h: number;
-    color: string;
     speed: number;
 };
 
@@ -52,15 +52,14 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void) {
     let lastShot = 0;
     const SHOT_DELAY = 25; // ms
 
-    const PLAYER_COLOR = "#4E61D3";
-    const DECIMAL_COLOR = "#F4F754";
-    const INPUT_COLOR = "#E9D484";
-    const BULLET_COLOR = "#CFADC1";
+    const DECIMAL_COLOR = PRIMARY_COLOR;
+    const INPUT_COLOR = SECONDARY_COLOR;
+    const BULLET_COLOR = ACCENT_COLOR;
     const COLLISION_COLOR = "#F1E0A3";
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const player: Player = { x: 280, y: canvas.height - 10, w: 40, h: 40, color: PLAYER_COLOR, speed: player_speed };
+    const player: Player = { x: 280, y: canvas.height - 10, w: 40, h: 40, speed: player_speed };
     const playerImages = {
         straight: new Image(),
         left: new Image(),
