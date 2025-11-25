@@ -55,11 +55,11 @@ export function game(canvas: HTMLCanvasElement, onGameOver: () => void, onMessag
     const DECIMAL_COLOR = PRIMARY_COLOR;
     const INPUT_COLOR = SECONDARY_COLOR;
     const BULLET_COLOR = ACCENT_COLOR;
-    const COLLISION_COLOR = "#F1E0A3";
+    const COLLISION_COLOR = ACCENT_COLOR;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const player: Player = { x: 280, y: canvas.height - 10, w: 40, h: 40, speed: player_speed };
+    const player: Player = { x: 280, y: canvas.height - 10, w: 60, h: 60, speed: player_speed };
     const playerImages = {
         straight: new Image(),
         left: new Image(),
