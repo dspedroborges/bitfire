@@ -45,7 +45,7 @@ type Player = {
 
 export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, level: number) => void, onMessage: (message: string) => void) {
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-    const maxSeconds = 5;
+    const maxSeconds = 10;
     const bullet_speed = 25;
     const player_speed = 10;
     const STARS_INCREASE = 15;
