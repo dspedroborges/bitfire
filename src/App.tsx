@@ -50,7 +50,7 @@ function App() {
 
           <div className="p-4 inter">
             {(savedPlayerStats.points > 0 || savedPlayerStats.level > 0) &&
-              <p className="mb-4">Hey, last time you were able to make {savedPlayerStats?.points} points and reach level {savedPlayerStats?.level}!</p>
+              <p className="mb-4 text-lg font-semibold text-center rounded-xl py-2" style={{ backgroundColor: PRIMARY_COLOR}}>Last time you were able to make <span className="font-extrabold">{savedPlayerStats?.points}</span> points and reach level <span className="font-extrabold">{savedPlayerStats?.level}</span>!</p>
             }
             <p className="mb-4">Game where you pilot a small ship and tweak binary blocks by shooting them. Each shot flips the digit between 0 and 1. Your goal is to build the sequence that matches the decimal number shown for the level. Move, aim, and flip the blocks until you reach the correct value.
             </p>
