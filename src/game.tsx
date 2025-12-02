@@ -43,7 +43,21 @@ type Player = {
     speed: number;
 };
 
-export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, level: number) => void, onMessage: (message: string) => void) {
+export type GameUpdate = {
+    points: number;
+    level: number;
+    life: number;
+    time: number;
+}
+
+export function game(
+    canvas: HTMLCanvasElement,
+    onGameOver: (points: number, level: number) => void,
+    onMessage: (message: { type: "success" | "error" | "info", content: string }) => void,
+    onGameUpdate: (update: GameUpdate) => void,
+    getLastBinary: (bin: string) => void,
+    getGoalAndCurrNumber: (values: { goal: number; current: number }) => void
+) {
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     const maxSeconds = 10;
     const bullet_speed = 25;
@@ -59,24 +73,10 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const player: Player = { x: 280, y: canvas.height - 10, w: 60, h: 60, speed: player_speed };
-    const playerImages = {
-        straight: new Image(),
-        left: new Image(),
-        right: new Image()
-    }
+    const player: Player = { x: 280, y: canvas.height - 10, w: 40, h: 40, speed: player_speed };
+    const playerImage = new Image();
 
-    playerImages.straight.src = "/images/ship.png"
-    playerImages.left.src = "/images/ship_left.png"
-    playerImages.right.src = "/images/ship_right.png"
-
-    const heartImages: Record<string, any> = {
-        full: new Image(),
-        empty: new Image(),
-    }
-
-    heartImages.full.src = "/images/heart_full.png";
-    heartImages.empty.src = "/images/heart_empty.png";
+    playerImage.src = "/images/ship_1.png";
 
     window.addEventListener("resize", () => {
         canvas.width = window.innerWidth;
@@ -95,7 +95,6 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
     let points = 0;
     let life = 3;
     let stars_amount = 25;
-    let playerState: "straight" | "left" | "right" = "straight";
 
     let inputs: InputBit[] = [];
     let decimals: DecimalBit[] = [];
@@ -105,6 +104,9 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
 
     let interval: number | undefined;
     let animationId: number;
+
+    onGameUpdate({ points, level, life, time: seconds });
+    getGoalAndCurrNumber({ goal: randomNumber, current: getCurrentNumber() });
 
     function drawInputsAndDecimals() {
         inputs = [];
@@ -177,6 +179,7 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
                     break;
                 }
             }
+            getGoalAndCurrNumber({ goal: randomNumber, current: getCurrentNumber() });
             return !hit;
         });
     }
@@ -185,6 +188,14 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
         currentNumber = 0;
         for (let i = 0; i < inputs.length; i++) if (inputs[i].active) currentNumber += inputs[i].value;
         return currentNumber;
+    }
+
+    function getCurrentBinaryNumber() {
+        let bin = "";
+        for (let i = 0; i < inputs.length; i++)
+            if (inputs[i].active) bin += "1"
+            else bin += "0";
+        return bin;
     }
 
     function gameOver() {
@@ -197,6 +208,7 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
         potency = 3;
         points = 0;
         randomNumber = randomInt(Math.pow(2, potency) - 1);
+        getGoalAndCurrNumber({ goal: randomNumber, current: getCurrentNumber() });
         drawInputsAndDecimals();
     }
 
@@ -206,33 +218,40 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
             level++;
             stars_amount += STARS_INCREASE;
             setStars();
-            onMessage("Level up!");
+            onMessage({ type: "success", content: "Level up!" });
+            onGameUpdate({ points, level, life, time: seconds });
+            playerImage.src = `/images/ship_${level < 8 ? level : 8}.png`;
             if (potency <= 8) {
                 potency++;
             }
-            drawInputsAndDecimals();
         }
     }
 
     function reset(success: boolean) {
-        let keepNumber = false;
         if (success) {
             soundEffects.score.play();
             points++;
-            onMessage("Good job!");
+            onGameUpdate({ points, level, life, time: seconds });
+            onMessage({ type: "success", content: "Good job!" });
             levelUp();
         } else {
             soundEffects.timeout.play();
             life--;
-            keepNumber = true;
-            onMessage("Time's up");
+            onGameUpdate({ points, level, life, time: seconds });
+            onMessage({ type: "error", content: "Time's up!" });
             if (life == 0) {
                 gameOver();
             }
         }
+        getLastBinary(getCurrentBinaryNumber());
+        drawInputsAndDecimals();
         inputs.forEach(input => input.active = false);
-        randomNumber = keepNumber ? randomNumber : randomInt(Math.pow(2, potency) - 1);
+        let lastRandomNumber = randomNumber;
+        do {
+            randomNumber = randomInt(Math.pow(2, potency) - 1);
+        } while (randomNumber == lastRandomNumber);
         seconds = maxSeconds;
+        getGoalAndCurrNumber({ goal: randomNumber, current: getCurrentNumber() });
     }
 
     function writeSomething(content: string, size: number, x: number, y: number, align: CanvasTextAlign, color: string) {
@@ -244,26 +263,16 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
     }
 
     function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-        const img = playerImages[playerState];
-        ctx.drawImage(img, x, y - h, w, h);
-    }
-
-    function drawHeart(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, state: string) {
-        const img = heartImages[state];
-        ctx.drawImage(img, x, y - h, w, h);
+        ctx.drawImage(playerImage, x, y - h, w, h);
     }
 
     function update() {
         if (keys["KeyA"]) {
-            playerState = "left";
             player.x -= player.speed;
             if (player.x + player.w < 0) player.x = canvas.width;
         } else if (keys["KeyD"]) {
-            playerState = "right";
             player.x += player.speed;
             if (player.x > canvas.width) player.x = -player.w;
-        } else {
-            playerState = "straight";
         }
 
         bullets.forEach(b => b.y -= b.speed);
@@ -302,20 +311,8 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const canvasMiddleX = canvas.width / 2;
-        const canvasMiddleY = canvas.height / 2;
-
-        const emptyAmount = 3 - life;
-        const fullAmount = life;
-        let lastXPosition = canvasMiddleX - 40;
-        for (let i = 0; i < fullAmount; i++) {
-            drawHeart(ctx, lastXPosition, canvasMiddleY + 65, 25, 25, "full");
-            lastXPosition += 30;
-        }
-        for (let i = 0; i < emptyAmount; i++) {
-            drawHeart(ctx, lastXPosition, canvasMiddleY + 65, 25, 25, "empty");
-            lastXPosition += 30;
-        }
+        // const canvasMiddleX = canvas.width / 2;
+        // const canvasMiddleY = canvas.height / 2;
 
         drawStars();
         drawPlayer(ctx, player.x, player.y, player.w, player.h);
@@ -341,11 +338,7 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
             ctx.fill();
         });
 
-        writeSomething(`${getCurrentNumber()} - ${randomNumber}`, 60, canvasMiddleX, canvasMiddleY, "center", "white");
-
-        writeSomething(`Time: ${seconds}`, 16, 5, canvas.height - 70, "left", "white");
-        writeSomething(`Points: ${points}`, 16, 5, canvas.height - 40, "left", "white");
-        writeSomething(`Level: ${level}`, 16, 5, canvas.height - 10, "left", "white");
+        // writeSomething(`${getCurrentNumber()} - ${randomNumber}`, 60, canvasMiddleX, canvasMiddleY, "center", "white");
 
         if (getCurrentNumber() == randomNumber) {
             reset(true);
@@ -362,6 +355,7 @@ export function game(canvas: HTMLCanvasElement, onGameOver: (points: number, lev
     function createTimer() {
         interval = window.setInterval(() => {
             seconds--;
+            onGameUpdate({ points, level, life, time: seconds });
 
             if (seconds == 3) {
                 soundEffects.alarm.play();

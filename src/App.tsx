@@ -1,31 +1,67 @@
 import { useRef, useState } from 'react';
-import { game } from './game';
-import { BsArrowCounterclockwise, BsPlayFill } from 'react-icons/bs';
+import { game, type GameUpdate } from './game';
+import { BsArrowCounterclockwise, BsClock, BsHeart, BsHeartFill, BsPlayFill } from 'react-icons/bs';
 import { soundEffects } from './soundPool';
 import { PRIMARY_COLOR } from './colors';
 import { toast, Toaster } from 'sonner';
+import { FaStar, FaTrophy } from 'react-icons/fa';
 
 function App() {
   const canvasRef = useRef(null);
   const [started, setStarted] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const [playerStats, setPlayerStats] = useState({ points: 0, level: 0 });
+  const [gameState, setGameState] = useState<GameUpdate>()
+  const [lastBinary, setLastBinary] = useState("");
+  const [goalAndCurrNumber, setGoalAndCurrNumber] = useState<{ goal: number, current: number }>();
+
   const savedPlayerStats = JSON.parse(String(localStorage.getItem("playerStats"))) ?? playerStats;
 
   const handleGameover = (points: number, level: number) => {
-    toast.warning("Game over!");
+    toast.error("Game over!");
     setShowGameOver(true);
     setPlayerStats({ points, level });
-    console.log({ points, level });
-    console.log(savedPlayerStats);
     if (level > savedPlayerStats.level || (level == savedPlayerStats.level && points > savedPlayerStats.points)) {
-      console.log("So I save!");
       localStorage.setItem("playerStats", JSON.stringify({ points, level }));
     }
   }
 
-  const handleMessage = (message: string) => {
-    toast.info(message);
+  const handleMessage = (message: { type: "success" | "error" | "info", content: string }) => {
+    switch (message.type) {
+      case "info":
+        toast.info(message.content);
+        break;
+      case "error":
+        toast.error(message.content);
+        break;
+      case "success":
+        toast.success(message.content);
+    }
+  }
+
+  const onGameUpdate = (gameUpdate: GameUpdate) => {
+    setGameState(gameUpdate);
+  }
+
+  const getHearts = (fullAmount: number) => {
+    const hearts = [];
+    const emptyAmount = 3 - fullAmount;
+    for (let i = 0; i < fullAmount; i++) {
+      hearts.push(<BsHeartFill key={`full_${i}`} />);
+    }
+    for (let i = 0; i < emptyAmount; i++) {
+      hearts.push(<BsHeart key={`empty_${i}`} />);
+    }
+
+    return hearts;
+  }
+
+  const getLastBinary = (bin: string) => {
+    setLastBinary(bin);
+  }
+
+  const getGoalAndCurrNumber = (values: { goal: number, current: number }) => {
+    setGoalAndCurrNumber(values);
   }
 
   function startGame() {
@@ -33,24 +69,65 @@ function App() {
     setShowGameOver(false);
     const canvas = canvasRef.current;
     if (!canvas) return;
-    game(canvas, handleGameover, handleMessage);
+    game(canvas, handleGameover, handleMessage, onGameUpdate, getLastBinary, getGoalAndCurrNumber);
     setStarted(true);
   }
 
   return (
     <div className="bg-linear-90 from-neutral-950 to-neutral-800 h-screen w-full">
       <Toaster />
+      {
+        started && (
+          <>
+            <div className="fixed bottom-2 left-2 bg-transparent text-white p-2 rounded-xl text-center">
+              <div className="flex items-center gap-2">
+                <FaStar />
+                <span>{gameState?.points}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BsClock />
+                <span>{gameState?.time}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FaTrophy />
+                <span>{gameState?.level}</span>
+              </div>
+              <div className="flex items-center gap-1 mt-3">
+                {
+                  getHearts(gameState?.life ?? 0)
+                }
+              </div>
+            </div>
+            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-transparent text-white text-center">
+              <div className="flex gap-8">
+                <div className="flex flex-col">
+                  <span>Current</span>
+                  <span className="text-6xl">{goalAndCurrNumber?.current}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span>Goal</span>
+                  <span className="text-6xl">{goalAndCurrNumber?.goal}</span>
+                </div>
+              </div>
+              <div className="flex flex-col mt-3">
+                <span>Last binary</span>
+                <span className="text-lg">{lastBinary}</span>
+              </div>
+            </div>
+          </>
+        )
+      }
       {/* <audio ref={fireSound} src="/sound_effects/fire.wav" /> */}
       {!started && (
         <div className="z-50 min-h-[250px] w-full lg:w-1/2 text-white rounded-xl fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center border-4 bg-neutral-950" style={{ borderColor: PRIMARY_COLOR }}>
           <div style={{ backgroundColor: PRIMARY_COLOR }} className="mb-4 py-4 w-full flex items-center justify-center gap-2">
-            <img src="/images/ship.png" className="w-16 block hover:rotate-12 transition-all" />
+            <img src="/images/ship_8.png" className="w-12 block hover:rotate-12 transition-all" />
             <h1 className="text-white text-5xl font-extrabold text-center orbitron">Bitfire</h1>
           </div>
 
           <div className="p-4 inter">
             {(savedPlayerStats.points > 0 || savedPlayerStats.level > 0) &&
-              <p className="mb-4 text-lg font-semibold text-center rounded-xl py-2" style={{ backgroundColor: PRIMARY_COLOR}}>Last time you were able to make <span className="font-extrabold">{savedPlayerStats?.points}</span> points and reach level <span className="font-extrabold">{savedPlayerStats?.level}</span>!</p>
+              <p className="mb-4 text-lg font-semibold text-center rounded-xl py-2" style={{ backgroundColor: PRIMARY_COLOR }}>Last time you were able to make <span className="font-extrabold">{savedPlayerStats?.points}</span> points and reach level <span className="font-extrabold">{savedPlayerStats?.level}</span>!</p>
             }
             <p className="mb-4">Game where you pilot a small ship and tweak binary blocks by shooting them. Each shot flips the digit between 0 and 1. Your goal is to build the sequence that matches the decimal number shown for the level. Move, aim, and flip the blocks until you reach the correct value.
             </p>
